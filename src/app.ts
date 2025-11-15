@@ -1,0 +1,11 @@
+import Koa from "koa";
+import bodyParser from "koa-bodyparser";
+// import TestRouter from "./routes/test1";
+import UserRouter from "./routes/user";
+import ScheduleRouter from "./routes/schedule";
+const app = new Koa();
+app.use(bodyParser({}));
+app.use(UserRouter.routes()).use(UserRouter.allowedMethods());
+app.use(ScheduleRouter.routes()).use(ScheduleRouter.allowedMethods());
+// app.use(TestRouter.routes()).use(TestRouter.allowedMethods());
+export default app;

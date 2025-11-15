@@ -1,0 +1,34 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"pnpm run build:watch\" \"pnpm run start:watch\"",
+    "build:watch": "tsup --watch",
+    "start:watch": "wait-on dist/index.js && nodemon --watch dist --ext js,json --exec \"node dist/index.js\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.15.1",
+  "devDependencies": {
+    "@types/node": "^20.19.25",
+    "concurrently": "^9.2.1",
+    "nodemon": "^3.1.11",
+    "tsup": "^8.5.1",
+    "wait-on": "^9.0.3"
+  },
+  "dependencies": {
+    "@types/koa": "^3.0.1",
+    "@types/koa-bodyparser": "^4.3.13",
+    "@types/koa-router": "^7.4.9",
+    "dotenv": "^17.2.3",
+    "koa": "^3.1.1",
+    "koa-bodyparser": "^4.4.1",
+    "koa-router": "^14.0.0",
+    "mongoose": "^8.19.3",
+    "redis": "^5.9.0",
+    "typescript": "^5.9.3"
+  }
+}
