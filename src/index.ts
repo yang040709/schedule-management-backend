@@ -1,16 +1,12 @@
-import { add } from "./utils";
+// import { add } from "./utils/index.js";
 import dotenv from "dotenv";
 import app from "./app";
+import { connectDB } from "@/config/db";
 dotenv.config();
 
 const PORT = process.env.PORT || 3000;
-// console.log(import.meta?.env);
-// console.log(process?.env.API_KEY);
-
-// console.log("hello123");
-// console.log(add(1, 2));
-
-const init = () => {
+const init = async () => {
+  await connectDB();
   app.listen(3000, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
   });

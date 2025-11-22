@@ -1,11 +1,11 @@
 export const createResponse = (data: any) => {
   return {
-    code: 200,
+    code: 0,
     message: "success",
     data,
   };
 };
-export const createError = (message: string, code: number = 500) => {
+export const createError = (message: string, code: number = -1) => {
   return {
     code,
     message,

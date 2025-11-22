@@ -13,6 +13,7 @@
   "license": "ISC",
   "packageManager": "pnpm@10.15.1",
   "devDependencies": {
+    "@types/koa__router": "^12.0.5",
     "@types/node": "^20.19.25",
     "concurrently": "^9.2.1",
     "nodemon": "^3.1.11",
@@ -20,14 +21,18 @@
     "wait-on": "^9.0.3"
   },
   "dependencies": {
+    "@koa/router": "^14.0.0",
     "@types/koa": "^3.0.1",
     "@types/koa-bodyparser": "^4.3.13",
-    "@types/koa-router": "^7.4.9",
+    "@types/koa-logger": "^3.1.5",
+    "bcryptjs": "^3.0.3",
     "dotenv": "^17.2.3",
+    "jsonwebtoken": "^9.0.2",
     "koa": "^3.1.1",
     "koa-bodyparser": "^4.4.1",
-    "koa-router": "^14.0.0",
+    "koa-logger": "^4.0.0",
     "mongoose": "^8.19.3",
+    "nanoid": "^5.1.6",
     "redis": "^5.9.0",
     "typescript": "^5.9.3"
   }

@@ -1,121 +1,79 @@
 // 例如，优先级如果只有固定的几个级别
-export type PriorityLevel = "high" | "medium" | "low";
+export type PriorityLevel = 'high' | 'medium' | 'low'
 
-export type ScheduleStatus =
-  | "done"
-  | "pending"
-  | "expired"
-  | "canceled"
-  | "locked";
+export type ScheduleStatus = 'done' | 'pending' | 'expired' | 'canceled' | 'locked'
 
-// // 或者分类名称预定义
-// // type CategoryTag = 'work' | 'personal' | 'health' | 'shopping';
-
-// // 日程项接口，定义单个日程的详细结构
-// export interface ScheduleEvent {
-//   id: string // 唯一标识符
-//   title: string // 标题
-//   description?: string // 可选字段，使用?
-//   startTime?: string // 开始时间
-//   endTime?: string // 结束时间
-//   priority: PriorityLevel // 优先级
-//   category?: string[] // 分类支持多个标签
-//   completed: boolean // 完成状态
-//   date: string
-// }
-
-// export interface ScheduleEventV1 extends Omit<ScheduleEvent, 'date'> {}
-
-// // 主数据结构接口，以日期字符串为键，日程项数组为值
-// export interface ScheduleDataV1 {
-//   [date: string]: ScheduleEventV1[] // 索引签名，允许动态的日期键
-// }
-
-// export type ScheduleData = ScheduleEvent[]
-
-/* 
-
-| 当前状态     | 允许切换到的状态         | 触发条件示例 |
-|--------------|--------------------------|-------------|
-| `pending`    | `in-progress`, `canceled`, `expired` | 用户点击“开始”；用户主动取消；系统定时检查发现已过期 |
-| `in-progress`| `done`, `canceled`, `expired`       | 用户标记完成；用户放弃；超时未完成 |
-| `done`       | （通常不可变）           | — |
-| `canceled`   | （通常不可变）           | — |
-| `expired`    | （通常不可变）           | — |
-
-*/
-
-export type ScheduleNoDependent = Omit<Schedule, "dependentSchedule">;
+export type ScheduleNoDependent = Omit<Schedule, 'dependentSchedule'>
 
 export type Schedule = {
-  id: string;
-  title: string;
-  description: string;
-  AIsuggestion?: string;
-  status: ScheduleStatus;
-  priority: PriorityLevel;
-  category?: string[];
+  id: string
+  title: string
+  description: string
+  AIsuggestion?: string
+  status: ScheduleStatus
+  priority: PriorityLevel
+  category?: string[]
   // dependentId?: string // 依赖的任务ID
-  dependentSchedule?: ScheduleNoDependent;
-  createdAt: string;
-  updatedAt: string;
-  date: string;
+  dependentSchedule?: ScheduleNoDependent
+  createdAt: string
+  updatedAt: string
+  date: string
   timeOfDay?: {
-    startTime: string; // "08:00" 或 "08:00:00"
-    endTime: string; // "09:00"
-  };
-};
+    startTime: string // "08:00" 或 "08:00:00"
+    endTime: string // "09:00"
+  }
+}
 
-export type ScheduleItem = {};
+export type ScheduleItem = {}
 
 export interface ScheduleListQuery {
-  status?: ScheduleStatus;
-  priority?: string;
-  date?: string;
+  status?: ScheduleStatus
+  priority?: string
+  date?: string
   dateRange?: {
-    startDate: string; // "2025-11-01"
-    endDate: string; // "2025-11-10"
-  };
-  page?: number;
-  pageSize?: number;
+    startDate: string // "2025-11-01"
+    endDate: string // "2025-11-10"
+  }
+  page?: number
+  pageSize?: number
 }
 
 export interface ScheduleListResponse {
-  total: number;
-  data: Schedule[];
+  total: number
+  data: Schedule[]
 }
 
 export interface ScheduleResponse {
-  schedule: Schedule;
+  schedule: Schedule
 }
 
 export interface ScheduleForm {
-  title: string;
-  description: string;
-  priority: "high" | "medium" | "low";
-  category?: string[];
-  dependentId?: string; // 依赖的任务ID
+  title: string
+  description: string
+  priority: 'high' | 'medium' | 'low'
+  category?: string[]
+  dependentId?: string // 依赖的任务ID
   // 所有任务共用的时间段（可选）
   timeOfDay?: {
-    startTime: string; // "08:00" 或 "08:00:00"
-    endTime: string; // "09:00"
-  };
-  date: string;
+    startTime: string // "08:00" 或 "08:00:00"
+    endTime: string // "09:00"
+  }
+  date: string
 }
 
 export interface FlowScheduleForm {
-  id: string;
-  title: string;
-  description: string;
-  priority: "high" | "medium" | "low";
-  category?: string[];
-  dependentId?: string; // 依赖的任务ID
+  id: string
+  title: string
+  description: string
+  priority: 'high' | 'medium' | 'low'
+  category?: string[]
+  dependentId?: string // 依赖的任务ID
   // 所有任务共用的时间段（可选）
   timeOfDay: {
-    startTime?: string; // "08:00" 或 "08:00:00"
-    endTime?: string; // "09:00"
-  };
-  date: string;
+    startTime?: string // "08:00" 或 "08:00:00"
+    endTime?: string // "09:00"
+  }
+  date: string
 }
 
 /* 
@@ -123,20 +81,20 @@ export interface FlowScheduleForm {
 */
 type _ModifyScheduleForm = Omit<
   Schedule,
-  "id" | "createdAt" | "updatedAt" | "dependentSchedule"
+  'id' | 'createdAt' | 'updatedAt' | 'dependentSchedule'
 > & {
-  dependentId?: string; // 依赖的任务ID
-};
-export type ModifyScheduleForm = Partial<_ModifyScheduleForm>;
+  dependentId?: string // 依赖的任务ID
+}
+export type ModifyScheduleForm = Partial<_ModifyScheduleForm>
 
 export type ModifyScheduleFormWithId = Partial<_ModifyScheduleForm> & {
-  id: string;
-};
+  id: string
+}
 
 export interface GenerateSchedule {
-  content: string;
+  content: string
 }
 
 export interface AISuggest {
-  suggestion: string;
+  suggestion: string
 }
