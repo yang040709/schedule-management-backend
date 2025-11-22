@@ -1,7 +1,12 @@
 // 例如，优先级如果只有固定的几个级别
-export type PriorityLevel = 'high' | 'medium' | 'low'
+export type PriorityLevel = "high" | "medium" | "low";
 
-export type ScheduleStatus = 'done' | 'pending' | 'expired' | 'canceled' | 'in-progress'
+export type ScheduleStatus =
+  | "done"
+  | "pending"
+  | "expired"
+  | "canceled"
+  | "locked";
 
 // // 或者分类名称预定义
 // // type CategoryTag = 'work' | 'personal' | 'health' | 'shopping';
@@ -40,98 +45,98 @@ export type ScheduleStatus = 'done' | 'pending' | 'expired' | 'canceled' | 'in-p
 
 */
 
-export interface Schedule {
-  id: string
-  title: string
-  description: string
-  AIsuggestion?: string
-  status: ScheduleStatus
-  priority: PriorityLevel
-  category?: string[]
-  dependentId?: string // 依赖的任务ID
+export type ScheduleNoDependent = Omit<Schedule, "dependentSchedule">;
 
-  /* 
-  下面是时间相关的规则
-  */
-  // === 时间与重复规则 ===
-  scheduleType: 'single' | 'daily' // 单次 or 每日重复
-
-  // 单次任务：一个具体的日期（必填）
-  singleDate?: string // ISO 8601 日期，如 "2025-11-15"
-
-  // 重复任务：起止日期（闭区间）
-  recurrence?: {
-    startDate: string // "2025-11-01"
-    endDate: string // "2025-11-10"
-  }
-
-  // 所有任务共用的时间段（可选）
+export type Schedule = {
+  id: string;
+  title: string;
+  description: string;
+  AIsuggestion?: string;
+  status: ScheduleStatus;
+  priority: PriorityLevel;
+  category?: string[];
+  // dependentId?: string // 依赖的任务ID
+  dependentSchedule?: ScheduleNoDependent;
+  createdAt: string;
+  updatedAt: string;
+  date: string;
   timeOfDay?: {
-    startTime: string // "08:00" 或 "08:00:00"
-    endTime: string // "09:00"
-  }
-  createdAt: string
-  updatedAt: string
-}
+    startTime: string; // "08:00" 或 "08:00:00"
+    endTime: string; // "09:00"
+  };
+};
+
+export type ScheduleItem = {};
 
 export interface ScheduleListQuery {
-  status?: ScheduleStatus
-  priority?: string
-  date?: string
-  page?: number
-  pageSize?: number
+  status?: ScheduleStatus;
+  priority?: string;
+  date?: string;
+  dateRange?: {
+    startDate: string; // "2025-11-01"
+    endDate: string; // "2025-11-10"
+  };
+  page?: number;
+  pageSize?: number;
 }
 
 export interface ScheduleListResponse {
-  total: number
-  data: Schedule[]
+  total: number;
+  data: Schedule[];
 }
 
 export interface ScheduleResponse {
-  schedule: Schedule
+  schedule: Schedule;
 }
 
 export interface ScheduleForm {
-  title: string
-  description: string
-  priority: 'high' | 'medium' | 'low'
-  category?: string[]
-  dependentId?: string // 依赖的任务ID
-  date: {
-    type: 'TimeRange' | 'exact'
-    timeRange?: {
-      startTime: string
-      endTime: string
-    }
-    exactTime?: string //'2023-01-01 00:00:00或者2023-01-01'两种格式
-  }
+  title: string;
+  description: string;
+  priority: "high" | "medium" | "low";
+  category?: string[];
+  dependentId?: string; // 依赖的任务ID
+  // 所有任务共用的时间段（可选）
+  timeOfDay?: {
+    startTime: string; // "08:00" 或 "08:00:00"
+    endTime: string; // "09:00"
+  };
+  date: string;
 }
 
-interface _ModifyScheduleForm {
-  title: string
-  description: string
-  AIsuggestion?: string
-  status: ScheduleStatus
-  priority: PriorityLevel
-  category?: string[]
-  dependentId?: string // 依赖的任务ID
-  date: {
-    type: 'TimeRange' | 'exact'
-    timeRange?: {
-      startTime: string
-      endTime: string
-    }
-    exactTime?: string
-    //这三个必须为 ISO 8601 字符串。若仅指定日期（如 "2023-01-01"），视为全天任务。'2023-01-01 00:00:00或者2023-01-01'两种格式
-  }
+export interface FlowScheduleForm {
+  id: string;
+  title: string;
+  description: string;
+  priority: "high" | "medium" | "low";
+  category?: string[];
+  dependentId?: string; // 依赖的任务ID
+  // 所有任务共用的时间段（可选）
+  timeOfDay: {
+    startTime?: string; // "08:00" 或 "08:00:00"
+    endTime?: string; // "09:00"
+  };
+  date: string;
 }
 
-export type ModifyScheduleForm = Partial<_ModifyScheduleForm>
+/* 
+  除了id、createdAt、updatedAt字段，其他字段都可以修改
+*/
+type _ModifyScheduleForm = Omit<
+  Schedule,
+  "id" | "createdAt" | "updatedAt" | "dependentSchedule"
+> & {
+  dependentId?: string; // 依赖的任务ID
+};
+export type ModifyScheduleForm = Partial<_ModifyScheduleForm>;
+
+export type ModifyScheduleFormWithId = Partial<_ModifyScheduleForm> & {
+  id: string;
+};
 
 export interface GenerateSchedule {
-  content: string
+  content: string;
 }
 
 export interface AISuggest {
-  suggestion: string
+  suggestion: string;
 }
