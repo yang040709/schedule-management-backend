@@ -1,63 +1,101 @@
 import Router from "@koa/router";
 import { createResponse } from "../utils/index";
 import { scheduleList } from "../mock/schedule";
-
+import {
+  GenerateSchedule,
+  ModifyScheduleForm,
+  ScheduleForm,
+  ScheduleListQuery,
+} from "@/types/schedule";
+import {
+  addSchedule,
+  deleteSchedule,
+  generateAISuggest,
+  generateAISuggestByEdit,
+  generateSchedule,
+  getScheduleList,
+  modifySchedule,
+} from "@/service/schedule";
+import { authenticate } from "@/middlewares/auth";
 const router = new Router({});
 
+/* 
+  所有路由都需要认证
+*/
+router.use(authenticate);
+
 router.get("/schedule", async (ctx, next) => {
-  const newList = [...scheduleList];
-  // .sort(() => Math.random() - 0.5)
-  // .slice(0, Math.floor(Math.random() * 10));
+  const scheduleListQuery = ctx.request.query as ScheduleListQuery;
+  const scheduleList = await getScheduleList(
+    scheduleListQuery,
+    ctx.state.userId
+  );
   ctx.response.body = createResponse({
-    total: newList.length,
-    data: newList,
+    total: scheduleList.length,
+    data: scheduleList,
   });
   await next();
 });
 
 router.post("/schedule", async (ctx, next) => {
+  const scheduleForm = ctx.request.body as ScheduleForm;
+  const schedule = await addSchedule(scheduleForm, ctx.state.userId);
   ctx.response.body = createResponse({
-    schedule: scheduleList[Math.floor(Math.random() * 10)],
+    schedule,
   });
   await next();
 });
 
 router.put("/schedule/:id", async (ctx, next) => {
+  const modifyScheduleForm = ctx.request.body as ModifyScheduleForm;
+  const id = ctx.params.id;
+  const schedule = await modifySchedule(
+    id,
+    modifyScheduleForm,
+    ctx.state.userId
+  );
   ctx.response.body = createResponse({
-    schedule: {
-      ...scheduleList[Math.floor(Math.random() * 10)],
-      id: ctx.params.id,
-    },
+    schedule,
   });
   await next();
 });
 
 router.delete("/schedule/:id", async (ctx, next) => {
-  ctx.response.body = createResponse({
-    message: "delete success",
-  });
+  const id = ctx.params.id;
+  await deleteSchedule(id, ctx.state.userId);
+  ctx.response.body = createResponse(undefined);
   await next();
 });
 
 router.post("/schedule/ai/generate", async (ctx, next) => {
+  const { content } = ctx.request.body as GenerateSchedule;
+
+  const schedule = await generateSchedule(content, ctx.state.userId);
   ctx.response.body = createResponse({
-    ...scheduleList[Math.floor(Math.random() * 10)],
+    ...schedule,
   });
   await next();
 });
 
 router.get("/schedule/:id/ai/suggest", async (ctx, next) => {
+  const id = ctx.params.id;
+  const suggest = await generateAISuggest(id, ctx.state.userId);
   ctx.response.body = createResponse({
-    suggestion:
-      "优先梳理访谈核心数据，用折线图呈现满意度趋势、饼图展示需求分布；按 “问题 - 结论 - 建议” 结构撰写报告，同步给相关同事征集补充意见，确保 10 月 18 日前定稿。",
+    suggestion: suggest,
   });
   await next();
 });
 
 router.post("/schedule/:id/ai/suggest-by-edit", async (ctx, next) => {
+  const id = ctx.params.id;
+  const modifyScheduleForm = ctx.request.body as ModifyScheduleForm;
+  const suggest = await generateAISuggestByEdit(
+    id,
+    modifyScheduleForm,
+    ctx.state.userId
+  );
   ctx.response.body = createResponse({
-    suggestion:
-      "优先梳理访谈核心数据，用折线图呈现满意度趋势、饼图展示需求分布；按 “问题 - 结论 - 建议” 结构撰写报告，同步给相关同事征集补充意见，确保 10 月 18 日前定稿。",
+    suggestion: suggest,
   });
   await next();
 });

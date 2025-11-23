@@ -7,6 +7,7 @@ dotenv.config();
 const PORT = process.env.PORT || 3000;
 const init = async () => {
   await connectDB();
+  await import("@/config/ai.js");
   app.listen(3000, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
   });

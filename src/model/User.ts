@@ -23,7 +23,7 @@ const userSchema = new Schema(
       required: true,
       index: true,
       unique: true,
-      default: generateUserId(),
+      default: generateUserId,
     },
     username: {
       type: String,
@@ -31,7 +31,8 @@ const userSchema = new Schema(
       unique: true,
     },
     role: {
-      type: ["admin", "user"],
+      type: String,
+      enum: ["user", "admin"],
       default: "user",
       required: true,
     },

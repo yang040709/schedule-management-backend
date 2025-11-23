@@ -11,6 +11,8 @@ export const errorHandler = async (ctx: Context, next: Next) => {
   try {
     await next();
   } catch (err) {
+    console.log(err);
+    console.log(err.message, "<==err");
     if (err.message in errorMsgMap) {
       ctx.body = createError(errorMsgMap[err.message]);
     } else {
