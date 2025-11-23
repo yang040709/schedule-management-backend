@@ -1,4 +1,4 @@
-export const createResponse = (data: any) => {
+export const createResponse = (data?: any) => {
   return {
     code: 0,
     message: "success",

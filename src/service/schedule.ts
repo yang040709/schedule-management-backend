@@ -1,5 +1,6 @@
 import { openai } from "@/config/ai";
 import ScheduleModel from "@/model/Schedule";
+// import { ObjectId,ISODate } from "mongoose";
 import {
   ModifyScheduleForm,
   Schedule,
@@ -21,14 +22,13 @@ export const addSchedule = async (
       category: scheduleForm.category,
       dependentId: scheduleForm.dependentId,
       timeOfDay: scheduleForm.timeOfDay,
-      date: scheduleForm.date,
+      date: new Date(scheduleForm.date),
       status: "pending",
       userId,
     });
     await schedule.save();
     return schedule;
   } catch (error) {
-    console.log(error, "<==error");
     throw error;
   }
 };
@@ -39,6 +39,8 @@ export const getScheduleList = async (
 ) => {
   // 构建基础查询条件（只包含有值的字段）
   const conditions: any = {};
+
+  console.log(query);
 
   if (query.status !== undefined) {
     conditions.status = query.status;
@@ -51,12 +53,32 @@ export const getScheduleList = async (
   }
 
   // 处理日期范围查询（关键！）
-  if (query.dateRange) {
+
+  // if (query.dateRangeStartDate && query.dateRangeEndDate) {
+  //   const start = new Date(query.dateRangeStartDate).setHours(0, 0, 0, 0);
+  //   const end = new Date(query.dateRangeEndDate).setHours(23, 59, 59, 999);
+  //   console.log("start", start);
+  //   console.log("end", end);
+
+  //   conditions.date = {
+  //     $gte: new Date(start),
+  //     $lte: new Date(end),
+  //   };
+  // }
+
+  if (query.dateRangeStartDate && query.dateRangeEndDate) {
+    // 直接构造 UTC 日期，不依赖本地时区
+    const start = new Date(query.dateRangeStartDate); // "2025-11-20" → UTC 00:00:00
+    const end = new Date(query.dateRangeEndDate);
+    end.setUTCHours(23, 59, 59, 999); // 在 UTC 下设为 23:59:59.999
+
     conditions.date = {
-      $gte: query.dateRange.startDate,
-      $lte: query.dateRange.endDate,
+      $gte: start,
+      $lte: end,
     };
   }
+  console.log(conditions, "conditions");
+
   conditions.userId = userId;
   let scheduleResult = ScheduleModel.find(conditions);
 
@@ -68,6 +90,8 @@ export const getScheduleList = async (
   }
 
   const scheduleList = await scheduleResult;
+
+  // console.log(scheduleList, "<===list");
   /* 
     把列表的依赖的任务也查询出来
   */
@@ -76,26 +100,27 @@ export const getScheduleList = async (
 
   if (scheduleList.length > 0) {
     let dependentScheduleIds = scheduleList.map((item) => {
-      console.log(item, "item");
+      // console.log(item, "item");
       return item.dependentId;
     });
-    console.log("dependentScheduleIds", dependentScheduleIds);
+    // console.log("dependentScheduleIds", dependentScheduleIds);
     dependentScheduleIds = dependentScheduleIds.filter((id) => id);
     const dependentSchedules = await ScheduleModel.find({
       id: { $in: dependentScheduleIds },
       userId,
     });
-    console.log(dependentSchedules, "<==dependentSchedules");
+    // console.log(dependentSchedules, "<==dependentSchedules");
     scheduleList.forEach((item) => {
+      const dependentSchedule = dependentSchedules.find(
+        (dep) => dep.id === item.dependentId
+      );
       finalScheduleList.push({
         ...item.toObject(),
-        dependentSchedule: dependentSchedules.find(
-          (dep) => dep.id === item.dependentId
-        ),
+        dependentSchedule: dependentSchedule,
       });
     });
   }
-  console.log(finalScheduleList, "<==finalScheduleList");
+  // console.log(finalScheduleList, "<==finalScheduleList");
   return finalScheduleList;
 };
 
@@ -117,10 +142,12 @@ export const modifySchedule = async (
   ];
 
   // 1. 过滤掉 undefined/null 值（保留原始值）和无效的key值
+  //并转换日期
   const cleanedUpdate = Object.fromEntries(
     Object.entries(updateData)
       .filter(([_, v]) => v !== undefined && v !== null)
       .filter(([k]) => saveKeyList.includes(k))
+      .map(([k, v]) => [k, k === "date" ? new Date(v as string) : v])
   );
 
   // // 2. 特殊处理 dependentId → 转换为 dependentSchedule 引用
@@ -223,7 +250,6 @@ export const generateAISuggest = async (id: string, userId: string) => {
   });
   const suggestion = completion.choices[0].message.content;
   await modifySchedule(id, { AIsuggestion: suggestion }, userId);
-  console.log("completion", suggestion);
   return suggestion;
 };
 
@@ -302,7 +328,6 @@ export const generateSchedule = async (content: string, userId: string) => {
     ],
   });
   const scheduleStr = completion.choices[0].message.content;
-  // return suggestion;
   const schedule = JSON.parse(scheduleStr) as ScheduleDocument;
   console.log(schedule);
   return schedule;

@@ -89,9 +89,8 @@ const scheduleSchema = new Schema(
       index: true,
     },
     date: {
-      type: String, // 格式如 "2025-11-22"
+      type: Date,
       required: true,
-      match: [/^\d{4}-\d{2}-\d{2}$/, "Invalid date format (YYYY-MM-DD)"],
     },
     timeOfDay: TimeOfDaySchema,
   },

@@ -23,7 +23,7 @@ export interface ScheduleDocument {
   createdAt: Date;
   userId: string;
   updatedAt: Date;
-  date: string;
+  date: Date;
   timeOfDay?: {
     startTime: string;
     endTime: string;
@@ -42,7 +42,7 @@ export type Schedule = {
   dependentSchedule?: ScheduleNoDependent;
   createdAt: Date;
   updatedAt: Date;
-  date: string;
+  date: Date;
   timeOfDay?: {
     startTime: string; // "08:00" 或 "08:00:00"
     endTime: string; // "09:00"
@@ -55,10 +55,8 @@ export interface ScheduleListQuery {
   status?: ScheduleStatus;
   priority?: string;
   date?: string;
-  dateRange?: {
-    startDate: string; // "2025-11-01"
-    endDate: string; // "2025-11-10"
-  };
+  dateRangeStartDate?: string; // "2025-11-01"
+  dateRangeEndDate?: string; // "2025-11-10"
   page?: number;
   pageSize?: number;
 }

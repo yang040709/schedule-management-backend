@@ -10,8 +10,8 @@ export const authenticate = async (ctx: Context, next: Next) => {
   try {
     const decoded = verifyToken(token);
     ctx.state.userId = decoded.id;
-    await next();
   } catch (error) {
     throw new Error("INVALID_TOKEN");
   }
+  await next();
 };
