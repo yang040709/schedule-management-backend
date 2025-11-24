@@ -53,7 +53,7 @@ export type ScheduleItem = {};
 
 export interface ScheduleListQuery {
   status?: ScheduleStatus;
-  priority?: string;
+  priority?: PriorityLevel;
   date?: string;
   dateRangeStartDate?: string; // "2025-11-01"
   dateRangeEndDate?: string; // "2025-11-10"

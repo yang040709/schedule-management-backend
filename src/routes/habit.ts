@@ -70,7 +70,7 @@ router.get("/habits/today", async (ctx, next) => {
 // 添加新的习惯
 router.post("/habits", async (ctx, next) => {
   const newHabit = {
-    ...ctx.request.body,
+    ...(ctx.request.body as Object),
     id: `habit-${Date.now()}`,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -94,7 +94,7 @@ router.put("/habits/:id", async (ctx, next) => {
   const habit = habitList.find((h) => h.id === ctx.params.id);
   const updatedHabit = {
     ...habit,
-    ...ctx.request.body,
+    ...(ctx.request.body as Object),
     id: ctx.params.id,
     updatedAt: new Date().toISOString(),
   };
@@ -115,7 +115,7 @@ router.delete("/habits/:id", async (ctx, next) => {
 
 // 打卡今天的习惯
 router.post("/habits/check-in", async (ctx, next) => {
-  const { habitId, notes, mood, duration } = ctx.request.body;
+  const { habitId, notes, mood, duration } = ctx.request.body as any;
 
   // 模拟创建打卡记录
   const newRecord = {

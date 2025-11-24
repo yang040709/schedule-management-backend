@@ -1,9 +1,13 @@
-import { openai } from "@/config/ai";
 import ScheduleModel from "@/model/Schedule";
-// import { ObjectId,ISODate } from "mongoose";
+import {
+  convertScheduleDocumentToSchedule,
+  getScheduleFlowChain,
+} from "@/utils/schedule";
+import { createChatCompletionWithRetry, validateAIResponse } from "@/utils/ai";
+import { NotFoundError, SCHEDULE_ERRORS } from "@/utils/errors";
+import { cacheService, CACHE_KEYS } from "@/utils/cache";
 import {
   ModifyScheduleForm,
-  Schedule,
   ScheduleDocument,
   ScheduleForm,
   ScheduleListQuery,
@@ -13,30 +17,44 @@ export const addSchedule = async (
   scheduleForm: ScheduleForm,
   userId: string
 ) => {
-  try {
-    console.log(scheduleForm, "<==add");
-    const schedule = await ScheduleModel.create({
-      title: scheduleForm.title,
-      description: scheduleForm.description,
-      priority: scheduleForm.priority,
-      category: scheduleForm.category,
-      dependentId: scheduleForm.dependentId,
-      timeOfDay: scheduleForm.timeOfDay,
-      date: new Date(scheduleForm.date),
-      status: "pending",
-      userId,
-    });
-    await schedule.save();
-    return schedule;
-  } catch (error) {
-    throw error;
-  }
+  console.log(scheduleForm, "<==add");
+  const schedule = await ScheduleModel.create({
+    title: scheduleForm.title,
+    description: scheduleForm.description,
+    priority: scheduleForm.priority,
+    category: scheduleForm.category,
+    dependentId: scheduleForm.dependentId,
+    timeOfDay: scheduleForm.timeOfDay,
+    date: new Date(scheduleForm.date),
+    status: "pending",
+    userId,
+  });
+  await schedule.save();
+
+  // 清除该用户的日程列表缓存
+  await cacheService.deleteByPattern(`${CACHE_KEYS.SCHEDULE_LIST}:${userId}:*`);
+
+  return schedule;
 };
 
 export const getScheduleList = async (
   query: ScheduleListQuery,
   userId: string
 ) => {
+  // 生成缓存键
+  const cacheKey = `${CACHE_KEYS.SCHEDULE_LIST}:${userId}:${JSON.stringify(
+    query
+  )}`;
+
+  // 尝试从缓存获取
+  const cachedResult = await cacheService.get<any[]>(cacheKey);
+  if (cachedResult) {
+    console.log("Cache hit for schedule list");
+    return cachedResult;
+  }
+
+  console.log("Cache miss for schedule list, querying database");
+
   // 构建基础查询条件（只包含有值的字段）
   const conditions: any = {};
 
@@ -52,20 +70,7 @@ export const getScheduleList = async (
     conditions.date = query.date;
   }
 
-  // 处理日期范围查询（关键！）
-
-  // if (query.dateRangeStartDate && query.dateRangeEndDate) {
-  //   const start = new Date(query.dateRangeStartDate).setHours(0, 0, 0, 0);
-  //   const end = new Date(query.dateRangeEndDate).setHours(23, 59, 59, 999);
-  //   console.log("start", start);
-  //   console.log("end", end);
-
-  //   conditions.date = {
-  //     $gte: new Date(start),
-  //     $lte: new Date(end),
-  //   };
-  // }
-
+  // 处理日期范围查询
   if (query.dateRangeStartDate && query.dateRangeEndDate) {
     // 直接构造 UTC 日期，不依赖本地时区
     const start = new Date(query.dateRangeStartDate); // "2025-11-20" → UTC 00:00:00
@@ -91,37 +96,21 @@ export const getScheduleList = async (
 
   const scheduleList = await scheduleResult;
 
-  // console.log(scheduleList, "<===list");
-  /* 
-    把列表的依赖的任务也查询出来
-  */
+  // 使用新的工具函数转换日程文档
+  const finalScheduleList = await convertScheduleDocumentToSchedule(
+    scheduleList,
+    userId
+  );
 
-  const finalScheduleList: Schedule[] = [];
+  // 缓存结果，TTL 设置为 5 分钟
+  await cacheService.set(cacheKey, finalScheduleList, 300);
 
-  if (scheduleList.length > 0) {
-    let dependentScheduleIds = scheduleList.map((item) => {
-      // console.log(item, "item");
-      return item.dependentId;
-    });
-    // console.log("dependentScheduleIds", dependentScheduleIds);
-    dependentScheduleIds = dependentScheduleIds.filter((id) => id);
-    const dependentSchedules = await ScheduleModel.find({
-      id: { $in: dependentScheduleIds },
-      userId,
-    });
-    // console.log(dependentSchedules, "<==dependentSchedules");
-    scheduleList.forEach((item) => {
-      const dependentSchedule = dependentSchedules.find(
-        (dep) => dep.id === item.dependentId
-      );
-      finalScheduleList.push({
-        ...item.toObject(),
-        dependentSchedule: dependentSchedule,
-      });
-    });
-  }
-  // console.log(finalScheduleList, "<==finalScheduleList");
   return finalScheduleList;
+};
+
+export const getScheduleFlow = async (id: string, userId: string) => {
+  // 使用新的工具函数获取日程流程链
+  return await getScheduleFlowChain(id, userId);
 };
 
 export const modifySchedule = async (
@@ -150,12 +139,7 @@ export const modifySchedule = async (
       .map(([k, v]) => [k, k === "date" ? new Date(v as string) : v])
   );
 
-  // // 2. 特殊处理 dependentId → 转换为 dependentSchedule 引用
-  // if ("dependentId" in cleanedUpdate) {
-  //   const { dependentId, ...rest } = cleanedUpdate;
-  //   cleanedUpdate.dependentSchedule = dependentId || null; // null 表示解除依赖
-  //   // 注意：这里假设你的 Schema 中 dependentSchedule 实际存储的是 ID
-  // }
+  // 处理状态变更对依赖任务的影响
   if (updateData.status && updateData.status === "done") {
     /* 
       当修改的状态是done时，需要更新所有依赖它的任务的状态也变成pending,就是解锁了
@@ -175,7 +159,7 @@ export const modifySchedule = async (
     );
   }
 
-  // 3. 执行更新
+  // 执行更新
   const updated = await ScheduleModel.findOneAndUpdate(
     {
       id,
@@ -185,18 +169,28 @@ export const modifySchedule = async (
     { new: true, runValidators: true }
   );
 
+  // 清除该用户的日程列表缓存
+  await cacheService.deleteByPattern(`${CACHE_KEYS.SCHEDULE_LIST}:${userId}:*`);
+
   return updated;
 };
 
 export const deleteSchedule = async (id: string, userId: string) => {
   if (!id) {
-    throw new Error("NOT_FOUND");
+    throw new NotFoundError(SCHEDULE_ERRORS.NEED_ID);
   }
   const deleted = await ScheduleModel.findOneAndDelete({
     id,
     userId,
   });
+  if (!deleted) {
+    throw new NotFoundError(SCHEDULE_ERRORS.NOT_FOUND);
+  }
   console.log(deleted, "<==deleted");
+
+  // 清除该用户的日程列表缓存
+  await cacheService.deleteByPattern(`${CACHE_KEYS.SCHEDULE_LIST}:${userId}:*`);
+
   return deleted;
 };
 
@@ -224,31 +218,28 @@ const suggestSystemPrompt = `你是一位高效能个人助理，专门帮助用
 - 如何提升执行效率或减少压力
 - 更重要的是提供行动建议，告诉用户如何更好地执行任务，用户需要注意什么，用户可以通过什么提高完成日程的效率
 
-请用中文回复，语气专业而友好，避免使用“建议”“你可以”等冗余开头，直接给出行动导向的语句。`;
+请用中文回复，语气专业而友好，避免使用"建议""你可以"等冗余开头，直接给出行动导向的语句。`;
 
 export const generateAISuggest = async (id: string, userId: string) => {
   if (!id) {
-    throw new Error("NEED_ID");
+    throw new NotFoundError(SCHEDULE_ERRORS.NEED_ID);
   }
   const schedule = await ScheduleModel.findOne({ id });
   if (!schedule) {
-    throw new Error("NOT_FOUND");
+    throw new NotFoundError(SCHEDULE_ERRORS.NOT_FOUND);
   }
   const userPrompt = createSuggestUserPrompt(schedule);
-  const completion = await openai.chat.completions.create({
-    model: "deepseek-chat",
-    messages: [
-      {
-        role: "system",
-        content: suggestSystemPrompt,
-      },
-      {
-        role: "user",
-        content: userPrompt,
-      },
-    ],
-  });
-  const suggestion = completion.choices[0].message.content;
+  const completion = await createChatCompletionWithRetry([
+    {
+      role: "system",
+      content: suggestSystemPrompt,
+    },
+    {
+      role: "user",
+      content: userPrompt,
+    },
+  ]);
+  const suggestion = validateAIResponse(completion.choices[0].message.content);
   await modifySchedule(id, { AIsuggestion: suggestion }, userId);
   return suggestion;
 };
@@ -259,31 +250,28 @@ export const generateAISuggestByEdit = async (
   userId: string
 ) => {
   if (!id) {
-    throw new Error("NEED_ID");
+    throw new NotFoundError(SCHEDULE_ERRORS.NEED_ID);
   }
   const schedule = await ScheduleModel.findOne({ id });
   if (!schedule) {
-    throw new Error("NOT_FOUND");
+    throw new NotFoundError(SCHEDULE_ERRORS.NOT_FOUND);
   }
   const newSchedule = {
     ...schedule,
     ...from,
   };
   const userPrompt = createSuggestUserPrompt(newSchedule);
-  const completion = await openai.chat.completions.create({
-    model: "deepseek-chat",
-    messages: [
-      {
-        role: "system",
-        content: suggestSystemPrompt,
-      },
-      {
-        role: "user",
-        content: userPrompt,
-      },
-    ],
-  });
-  const suggestion = completion.choices[0].message.content;
+  const completion = await createChatCompletionWithRetry([
+    {
+      role: "system",
+      content: suggestSystemPrompt,
+    },
+    {
+      role: "user",
+      content: userPrompt,
+    },
+  ]);
+  const suggestion = validateAIResponse(completion.choices[0].message.content);
   return suggestion;
 };
 
@@ -291,10 +279,10 @@ const scheduleSystemPrompt = `你是一个智能日程解析器。请根据用�
 
 interface ScheduleForm {
   title: string;                    // 必填，简洁概括任务名称，不超过20字
-  description: string;              // 必填，不可为空字符串。你根据用户的输入，描述任务内容,不要出现“用户说XX时间干什么”，直接以用户的人称输出就可以。
-  priority: "low" | "medium" | "high"; // 必填，根据语境判断：含“紧急”“重要”“必须”等视为 high；含“随便”“有空再做”视为 low；其余默认 medium
+  description: string;              // 必填，不可为空字符串。你根据用户的输入，描述任务内容,不要出现"用户说XX时间干什么"，直接以用户的人称输出就可以。
+  priority: "low" | "medium" | "high"; // 必填，根据语境判断：含"紧急""重要""必须"等视为 high；含"随便""有空再做"视为 low；其余默认 medium
   category?: string[];              // 可选，从 ["工作", "学习", "生活", "健康", "家庭", "其他"] 中选择最相关的1-2项；无法判断则省略该字段
-  timeOfDay?: {                     // 若提到具体时间段（如“9点到10点”），则必填；否则省略
+  timeOfDay?: {                     // 若提到具体时间段（如"9点到10点"），则必填；否则省略
     startTime: string;              // 格式必须为 "HH:mm"（24小时制，补零），例如 "09:00"
     endTime: string;                // 同上，必须晚于 startTime
   };
@@ -307,27 +295,24 @@ interface ScheduleForm {
 1. **只输出纯 JSON 对象**，不要包含任何解释、Markdown、代码块（如 \`\`\`json）或额外文本。
 2. 所有字段必须符合上述类型和格式要求。
 3. 若用户未提及时段，不要猜测或填充 timeOfDay。
-4. 日期需正确解析相对时间（如“明天”“下周一”），并转换为绝对日期。
+4. 日期需正确解析相对时间（如"明天""下周一"），并转换为绝对日期。
 5. 时间必须标准化为 24 小时制，补前导零（如 "9:00" → "09:00"）。
 6. 若无法解析关键信息（如日期），仍需返回合法 JSON，并尽可能填充可推断字段，缺失部分按规则设为空或默认值。
 
 现在，请解析以下用户输入：`;
 
 export const generateSchedule = async (content: string, userId: string) => {
-  const completion = await openai.chat.completions.create({
-    model: "deepseek-chat",
-    messages: [
-      {
-        role: "system",
-        content: scheduleSystemPrompt,
-      },
-      {
-        role: "user",
-        content: content,
-      },
-    ],
-  });
-  const scheduleStr = completion.choices[0].message.content;
+  const completion = await createChatCompletionWithRetry([
+    {
+      role: "system",
+      content: scheduleSystemPrompt,
+    },
+    {
+      role: "user",
+      content: content,
+    },
+  ]);
+  const scheduleStr = validateAIResponse(completion.choices[0].message.content);
   const schedule = JSON.parse(scheduleStr) as ScheduleDocument;
   console.log(schedule);
   return schedule;

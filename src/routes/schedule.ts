@@ -4,6 +4,7 @@ import { scheduleList } from "../mock/schedule";
 import {
   GenerateSchedule,
   ModifyScheduleForm,
+  Schedule,
   ScheduleForm,
   ScheduleListQuery,
 } from "@/types/schedule";
@@ -13,6 +14,7 @@ import {
   generateAISuggest,
   generateAISuggestByEdit,
   generateSchedule,
+  getScheduleFlow,
   getScheduleList,
   modifySchedule,
 } from "@/service/schedule";
@@ -96,6 +98,18 @@ router.post("/schedule/:id/ai/suggest-by-edit", async (ctx, next) => {
   );
   ctx.response.body = createResponse({
     suggestion: suggest,
+  });
+  await next();
+});
+
+/* 
+获取日程的整个流程链
+*/
+router.get("/schedule/:id/flow", async (ctx, next) => {
+  const id = ctx.params.id;
+  const flowArr = await getScheduleFlow(id, ctx.state.userId);
+  ctx.response.body = createResponse({
+    flow: flowArr,
   });
   await next();
 });
