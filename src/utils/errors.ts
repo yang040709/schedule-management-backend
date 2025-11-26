@@ -65,3 +65,14 @@ export const AI_ERRORS = {
   INVALID_RESPONSE: "AI 响应格式无效",
   TIMEOUT: "AI 服务响应超时",
 } as const;
+
+/**
+ * 习惯相关的错误消息常量
+ */
+export const HABIT_ERRORS = {
+  NOT_FOUND: "习惯未找到",
+  NEED_ID: "需要提供习惯ID",
+  ALREADY_CHECKED_IN: "今天已经打卡过了",
+  NO_CHECK_IN_RECORD: "没有找到打卡记录",
+  INVALID_FREQUENCY: "习惯频率无效",
+} as const;

@@ -76,6 +76,9 @@ export class CacheService {
 export const CACHE_KEYS = {
   SCHEDULE_LIST: "schedule:list",
   USER_INFO: "user:info",
+  HABIT_LIST: "habit:list",
+  HABIT_RECORDS: "habit:records",
+  DASHBOARD_STATS: "dashboard:stats",
 } as const;
 
 // 创建缓存服务实例

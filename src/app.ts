@@ -5,6 +5,7 @@ import UserRouter from "./routes/user";
 import ScheduleRouter from "./routes/schedule";
 import SettingRouter from "./routes/setting";
 import HabitRouter from "./routes/habit";
+import StatsRouter from "./routes/stats";
 import logger from "koa-logger";
 // import { error } from "console";
 import { errorHandler } from "./middlewares/errorsHandler";
@@ -22,6 +23,7 @@ app.use(UserRouter.routes()).use(UserRouter.allowedMethods());
 app.use(ScheduleRouter.routes()).use(ScheduleRouter.allowedMethods());
 app.use(SettingRouter.routes()).use(SettingRouter.allowedMethods());
 app.use(HabitRouter.routes()).use(HabitRouter.allowedMethods());
+app.use(StatsRouter.routes()).use(StatsRouter.allowedMethods());
 
 // app.use(TestRouter.routes()).use(TestRouter.allowedMethods());
 export default app;

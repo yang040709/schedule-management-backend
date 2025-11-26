@@ -34,6 +34,9 @@ export const addSchedule = async (
   // 清除该用户的日程列表缓存
   await cacheService.deleteByPattern(`${CACHE_KEYS.SCHEDULE_LIST}:${userId}:*`);
 
+  // 清除该用户的统计数据缓存
+  await cacheService.delete(`${CACHE_KEYS.DASHBOARD_STATS}:${userId}`);
+
   return schedule;
 };
 
@@ -172,6 +175,9 @@ export const modifySchedule = async (
   // 清除该用户的日程列表缓存
   await cacheService.deleteByPattern(`${CACHE_KEYS.SCHEDULE_LIST}:${userId}:*`);
 
+  // 清除该用户的统计数据缓存
+  await cacheService.delete(`${CACHE_KEYS.DASHBOARD_STATS}:${userId}`);
+
   return updated;
 };
 
@@ -190,6 +196,9 @@ export const deleteSchedule = async (id: string, userId: string) => {
 
   // 清除该用户的日程列表缓存
   await cacheService.deleteByPattern(`${CACHE_KEYS.SCHEDULE_LIST}:${userId}:*`);
+
+  // 清除该用户的统计数据缓存
+  await cacheService.delete(`${CACHE_KEYS.DASHBOARD_STATS}:${userId}`);
 
   return deleted;
 };

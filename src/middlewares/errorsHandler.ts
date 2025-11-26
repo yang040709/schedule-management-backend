@@ -13,8 +13,13 @@ export const errorHandler = async (ctx: Context, next: Next) => {
   } catch (err) {
     console.log(err);
     console.log(err.message, "<==err");
+
     if (err.message in errorMsgMap) {
-      ctx.body = createError(errorMsgMap[err.message]);
+      if (err.message === "INVALID_TOKEN" || err.message === "NO_TOKEN") {
+        ctx.body = createError(errorMsgMap[err.message], 401);
+      } else {
+        ctx.body = createError(errorMsgMap[err.message]);
+      }
     } else {
       ctx.body = createError("服务器错误");
     }
