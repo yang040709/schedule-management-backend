@@ -1,0 +1,30 @@
+version: '3.8'
+services:
+  app:
+    image: yang0709/schedule-management-backend:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/schedule-management
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=chenleyang0709
+      - DEEPSEEK_API_KEY=sk-b2ad261327fd41ad816fcdbe47ebb95a
+      - PORT=3000
+    depends_on:
+      - mongo
+      - redis
+
+  mongo:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+volumes:
+  mongo_data:
