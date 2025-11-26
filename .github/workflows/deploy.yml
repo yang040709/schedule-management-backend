@@ -37,6 +37,7 @@ jobs:
           source: "docker-compose.yml" # 只传docker-compose.yml
           target: "/opt/schedule-app"
           strip_components: 0
+          overwrite: true
 
       - name: Deploy to server with Docker Compose
         uses: appleboy/ssh-action@v1.0.2
