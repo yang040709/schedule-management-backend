@@ -296,6 +296,93 @@ export const getHabitStats = async (userId: string): Promise<AllStats> => {
   };
 };
 
+export const getTodayHabits = async (userId: string) => {
+  const today = new Date();
+  const startOfDay = new Date(today);
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(today);
+  endOfDay.setHours(23, 59, 59, 999);
+
+  // 获取用户的所有习惯
+  const habits = await HabitModel.find({ userId });
+
+  // 根据频率获取对应的打卡记录
+  const todayHabits = await Promise.all(
+    habits.map(async (habit) => {
+      let isCompleted = false;
+
+      switch (habit.frequency) {
+        case "daily":
+          // 每日习惯：今天是否打卡
+          const todayRecord = await CheckInRecordModel.findOne({
+            habitId: habit.id,
+            userId,
+            date: {
+              $gte: startOfDay,
+              $lte: endOfDay,
+            },
+          });
+          isCompleted = !!todayRecord;
+          break;
+
+        case "weekly":
+          // 每周习惯：本周是否打卡
+          const weekStart = new Date(today);
+          weekStart.setDate(today.getDate() - today.getDay()); // 本周日
+          weekStart.setHours(0, 0, 0, 0);
+
+          const weekEnd = new Date(weekStart);
+          weekEnd.setDate(weekStart.getDate() + 6); // 下周六
+          weekEnd.setHours(23, 59, 59, 999);
+
+          const weekRecord = await CheckInRecordModel.findOne({
+            habitId: habit.id,
+            userId,
+            date: {
+              $gte: weekStart,
+              $lte: weekEnd,
+            },
+          });
+          isCompleted = !!weekRecord;
+          break;
+
+        case "monthly":
+          // 每月习惯：本月是否打卡
+          const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+          monthStart.setHours(0, 0, 0, 0);
+
+          const monthEnd = new Date(
+            today.getFullYear(),
+            today.getMonth() + 1,
+            0
+          );
+          monthEnd.setHours(23, 59, 59, 999);
+
+          const monthRecord = await CheckInRecordModel.findOne({
+            habitId: habit.id,
+            userId,
+            date: {
+              $gte: monthStart,
+              $lte: monthEnd,
+            },
+          });
+          isCompleted = !!monthRecord;
+          break;
+      }
+
+      return {
+        ...habit.toJSON(),
+        completed: isCompleted,
+      };
+    })
+  );
+
+  return {
+    habits: todayHabits,
+    date: today.toISOString().split("T")[0],
+  };
+};
+
 export const getAchievements = async (
   userId: string
 ): Promise<Achievement[]> => {

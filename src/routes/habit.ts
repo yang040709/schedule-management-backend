@@ -10,6 +10,7 @@ import {
   getCheckInRecords,
   getHabitStats,
   getAchievements,
+  getTodayHabits,
 } from "@/service/habit";
 import CheckInRecordModel from "@/model/CheckInRecord";
 import { authenticate } from "@/middlewares/auth";
@@ -40,32 +41,8 @@ router.get("/habits", async (ctx, next) => {
 
 // 获取今日需要完成的习惯
 router.get("/habits/today", async (ctx, next) => {
-  // 获取用户的所有习惯
-  const habits = await getHabitList({}, ctx.state.userId);
-  const today = new Date();
-
-  // 获取今天的打卡记录
-  const todayRecords = await CheckInRecordModel.find({
-    userId: ctx.state.userId,
-    date: today.toISOString().split("T")[0],
-  });
-  console.log(todayRecords, "<====");
-  const todayHabits = habits
-    .map((habit) => {
-      const isCompleted = todayRecords.some(
-        (record) => record.habitId === habit.id
-      );
-      return {
-        ...habit,
-        completed: isCompleted,
-      };
-    })
-    .filter((item) => item !== null);
-
-  ctx.response.body = createResponse({
-    habits: todayHabits,
-    date: today,
-  });
+  const result = await getTodayHabits(ctx.state.userId);
+  ctx.response.body = createResponse(result);
   await next();
 });
 
