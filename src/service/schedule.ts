@@ -13,6 +13,7 @@ import {
   ScheduleListQuery,
 } from "@/types/schedule";
 
+import * as zod from "zod";
 export const addSchedule = async (
   scheduleForm: ScheduleForm,
   userId: string
@@ -309,6 +310,20 @@ interface ScheduleForm {
 6. 若无法解析关键信息（如日期），仍需返回合法 JSON，并尽可能填充可推断字段，缺失部分按规则设为空或默认值。
 
 现在，请解析以下用户输入：`;
+const scheduleFormTypeCheck = zod.object({
+  title: zod.string(),
+  description: zod.string(),
+  priority: zod.enum(["low", "medium", "high"]),
+  category: zod.array(zod.string()).optional(),
+  dependentId: zod.string().optional(),
+  timeOfDay: zod
+    .object({
+      startTime: zod.string(),
+      endTime: zod.string(),
+    })
+    .optional(),
+  date: zod.string(),
+});
 
 export const generateSchedule = async (content: string, userId: string) => {
   const completion = await createChatCompletionWithRetry([
@@ -322,7 +337,13 @@ export const generateSchedule = async (content: string, userId: string) => {
     },
   ]);
   const scheduleStr = validateAIResponse(completion.choices[0].message.content);
-  const schedule = JSON.parse(scheduleStr) as ScheduleDocument;
-  console.log(schedule);
-  return schedule;
+  const schedule = JSON.parse(scheduleStr) as ScheduleForm;
+  try {
+    scheduleFormTypeCheck.parse(schedule);
+    return schedule;
+  } catch (error) {
+    if (error) {
+      throw new Error(error.message);
+    }
+  }
 };

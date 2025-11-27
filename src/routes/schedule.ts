@@ -1,6 +1,6 @@
 import Router from "@koa/router";
 import { createResponse } from "../utils/index";
-import { scheduleList } from "../mock/schedule";
+
 import {
   GenerateSchedule,
   ModifyScheduleForm,
