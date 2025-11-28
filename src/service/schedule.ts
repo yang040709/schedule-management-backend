@@ -285,7 +285,8 @@ export const generateAISuggestByEdit = async (
   return suggestion;
 };
 
-const scheduleSystemPrompt = `你是一个智能日程解析器。请根据用户输入的自然语言描述，提取并生成一个严格符合以下 TypeScript 接口的 JSON 对象：
+const createScheduleSystemPrompt = () => {
+  return `你是一个智能日程解析器。请根据用户输入的自然语言描述，提取并生成一个严格符合以下 TypeScript 接口的 JSON 对象：
 
 interface ScheduleForm {
   title: string;                    // 必填，简洁概括任务名称，不超过20字
@@ -310,6 +311,7 @@ interface ScheduleForm {
 6. 若无法解析关键信息（如日期），仍需返回合法 JSON，并尽可能填充可推断字段，缺失部分按规则设为空或默认值。
 
 现在，请解析以下用户输入：`;
+};
 const scheduleFormTypeCheck = zod.object({
   title: zod.string(),
   description: zod.string(),
@@ -329,7 +331,7 @@ export const generateSchedule = async (content: string, userId: string) => {
   const completion = await createChatCompletionWithRetry([
     {
       role: "system",
-      content: scheduleSystemPrompt,
+      content: createScheduleSystemPrompt(),
     },
     {
       role: "user",
