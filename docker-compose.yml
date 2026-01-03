@@ -7,8 +7,8 @@ services:
     environment:
       - MONGO_URI=mongodb://mongo:27017/schedule-management
       - REDIS_URL=redis://redis:6379
-      - JWT_SECRET=chenleyang0709
-      - DEEPSEEK_API_KEY=sk-b2ad261327fd41ad816fcdbe47ebb95a
+      - JWT_SECRET=${JWT_SECRET}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
       - PORT=3000
     depends_on:
       - mongo
