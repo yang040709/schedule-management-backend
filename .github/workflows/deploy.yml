@@ -52,6 +52,11 @@ jobs:
             sudo docker compose version
             # 进入项目目录
             cd /opt/schedule-app
+            # 创建.env 文件
+            cat > .env <<EOF
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            DEEPSEEK_API_KEY=${{ secrets.DEEPSEEK_API_KEY }}
+            EOF
             # 拉取最新的镜像
             sudo docker pull yang0709/schedule-management-backend:latest
             # 停止并删除现有容器
