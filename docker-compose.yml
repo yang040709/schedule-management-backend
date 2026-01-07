@@ -11,8 +11,8 @@ services:
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
       - PORT=3000
     depends_on:
-      - mongo
       - redis
+      - mongo
 
   mongo:
     image: mongo:7
